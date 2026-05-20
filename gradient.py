@@ -1,18 +1,16 @@
 import numpy as np
+from numpy.linalg import norm
 import pygame
 
 
-#normalize a vector
 def normalize(v):
     return v / np.linalg.norm(v)
 
 
-#compute the dot product of two vectors
 def dot(a, b):
     return np.dot(a, b)
 
 
-#the ray sphere intersection formula
 def hit_sphere(center, radius, ray_origin, ray_dir):
     oc = ray_origin - center
     a = dot(ray_dir, ray_dir)
@@ -33,11 +31,9 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((width, height))
 
-    #camera position
     origin = np.array([0, 0, 0], dtype=float)
 
-    # sphere center
-    # -1 is in front
+    # ray point would just be origin + t * direction
     sphere_center = np.array([0, 0, -1], dtype=float)
     sphere_radius = 0.5
 
@@ -47,20 +43,43 @@ def main():
                 pygame.quit()
                 return
         for x in range(width):
-            # convert the pixels to viewport coordinates
+            # gotta convert the pixels to viewport coordinates
             u = ((x / width) * 2 - 1) * aspect_ratio
             v = 1 - (y / height) * 2
 
-            # backwards tracing the ray from the camera
             ray_dir = normalize(np.array([u, v, -1], dtype=float))
             t = hit_sphere(sphere_center, sphere_radius, origin, ray_dir)
             if t > 0:
-                # intersects, shade red
-                screen.set_at((x, y), (255, 0, 0))
+                # find the the ray
+                hit_point = origin + t * ray_dir
+                # find the surface normal
+                normal = normalize(hit_point - sphere_center)
+                # the light direction
+                light_dir = normalize(np.array([2,2,2], dtype=float))
+                # Direct Lamber Shading
+                brightness = max(0, dot(normal, light_dir))
+                #scales based on the the brightness
+                r = int(0 * brightness)
+                g = int(255 * brightness)
+                b = int(0 * brightness)
+                screen.set_at((x, y), (r, g, b))
             else:
-                # miss
-                screen.set_at((x, y), (0, 0, 0))
+                # using the y-component of the array
+                # calculate how high up this array is
+                t_bg = 0.5 * (ray_dir[1] + 1.0)
+                # calculate the rgb values
+                r = int((t_bg) * 255)
+                g = int((t_bg) * 255)
+                b = 255
+                screen.set_at((x,y), (r,g,b))
         pygame.display.flip()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+    pygame.quit()
 
 
 if __name__ == "__main__":
